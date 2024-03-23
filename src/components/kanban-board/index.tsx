@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Task } from "../../models/task";
 import "./index.css";
-import TaskRepository from "../../repositories/task-repository";
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { Task } from "@models/task";
+import TaskRepository from "@repositories/task-repository";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 const stagesNames = ["Backlog", "To Do", "In Progress", "Done"] as const;
 
@@ -23,12 +23,10 @@ export default function KanbanBoard() {
   });
   console.log(isPending, isError, data, error);
 
-
   const { mutate } = useMutation({
     mutationFn: (data: Task) => repository.create(data),
     onSuccess: (_) => refetch(),
   });
-
 
   // Routes:
   // `GET`   `/tasks`; returns `200` with all tasks (`Task[]`)
@@ -60,7 +58,7 @@ export default function KanbanBoard() {
           type="submit"
           className="ml-30"
           data-testid="create-task-button"
-          onClick={() => mutate({ name: 'My task 2', stage: 0  })}
+          onClick={() => mutate({ name: "My task 2", stage: 0 })}
         >
           Create task
         </button>

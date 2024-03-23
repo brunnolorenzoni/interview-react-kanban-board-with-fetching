@@ -1,8 +1,8 @@
-import { Task } from "../models/task";
-import { BaseRepository } from "./base-repository";
+import { Task } from "@models/task";
+import { BaseRepository } from "@repositories/base-repository";
 
 export default class TaskRepository extends BaseRepository<Task> {
-  resource = 'tasks';
+  resource = "tasks";
 
   getMany() {
     return super.getMany();

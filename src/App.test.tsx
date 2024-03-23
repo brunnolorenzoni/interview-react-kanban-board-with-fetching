@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 import App from "./App";
 
@@ -18,298 +24,325 @@ const testIds = {
   stages: ["stage-0", "stage-1", "stage-2", "stage-3"],
 } as const;
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const getFormElements = async (taskName: string | undefined = undefined) => {
+  const createTaskInput = await screen.findByTestId(testIds.createTaskInput);
+  const createTaskButton = await screen.findByTestId(testIds.createTaskButton);
+  return { createTaskButton, createTaskInput };
+};
+
+const getStages = async () => {
+  const backlogStage = await screen.findByTestId(testIds.stages[0]);
+  const toDoStage = await screen.findByTestId(testIds.stages[1]);
+  const onGoingStage = await screen.findByTestId(testIds.stages[2]);
+  const doneStage = await screen.findByTestId(testIds.stages[3]);
+  return { backlogStage, toDoStage, onGoingStage, doneStage };
+};
+
+const getTaskElements = async (taskName: string) => {
+  const taskBackIconId = `${taskName.split(" ").join("-")}-back`;
+  const taskForwardIconId = `${taskName.split(" ").join("-")}-forward`;
+  const taskDeleteIconId = `${taskName.split(" ").join("-")}-delete`;
+
+  const backButton = await screen.findByTestId(taskBackIconId);
+  const deleteButton = await screen.findByTestId(taskDeleteIconId);
+  const forwardButton = await screen.findByTestId(taskForwardIconId);
+
+  return { backButton, deleteButton, forwardButton };
+};
+
+const getTask = (taskName: string) => {
+  const taskId = `${taskName.split(" ").join("-")}-name`;
+  return screen.queryByTestId(taskId);
+};
 
 test("Clicking on Create Task Button should add it to first stage and do nothing if input is empty", async () => {
-  const { getByTestId, queryByTestId } = renderApp();
-
-  const createTaskInput = getByTestId(testIds.createTaskInput);
-  const createTaskButton = getByTestId(testIds.createTaskButton);
-  const backlogStage = getByTestId(testIds.stages[0]);
-  const toDoStage = getByTestId(testIds.stages[1]);
+  renderApp();
+  const { createTaskButton, createTaskInput } = await getFormElements();
+  const { backlogStage, toDoStage } = await getStages();
 
   const taskName = "task 1";
-  const taskId = `${taskName.split(" ").join("-")}-name`;
+
   fireEvent.change(createTaskInput, {
     target: { value: taskName },
   });
 
-  expect(backlogStage).not.toContainElement(queryByTestId(taskId));
-  expect(toDoStage).not.toContainElement(queryByTestId(taskId));
-  fireEvent.click(createTaskButton);
-  await delay(20);
+  expect(backlogStage).not.toContainElement(getTask(taskName));
+  expect(toDoStage).not.toContainElement(getTask(taskName));
 
-  expect(backlogStage).toContainElement(queryByTestId(taskId));
-  expect(toDoStage).not.toContainElement(queryByTestId(taskId));
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  expect((createTaskInput as any).value).toBeFalsy();
+  fireEvent.click(createTaskButton);
+  waitFor(() => {
+    expect(backlogStage).toContainElement(getTask(taskName));
+    expect(toDoStage).not.toContainElement(getTask(taskName));
+    expect((createTaskInput as any).value).toBeFalsy();
+  });
 
   const initialLength = backlogStage.children.length;
   fireEvent.change(createTaskInput, {
     target: { value: "" },
   });
-  fireEvent.click(createTaskButton);
-  await delay(20);
 
+  fireEvent.click(createTaskButton);
   expect(backlogStage.children.length).toBe(initialLength);
 });
 
 test("For a task in stage 0, backward icon is disabled and forward icon is enabled", async () => {
-  const { getByTestId, queryByTestId } = renderApp();
+  renderApp();
 
-  const createTaskInput = getByTestId(testIds.createTaskInput);
-  const createTaskButton = getByTestId(testIds.createTaskButton);
-  const backlogStage = getByTestId(testIds.stages[0]);
+  const { createTaskButton, createTaskInput } = await getFormElements();
+  const { backlogStage } = await getStages();
 
   const taskName = "task 1";
-  const taskId = `${taskName.split(" ").join("-")}-name`;
-  const taskBackIconId = `${taskName.split(" ").join("-")}-back`;
-  const taskForwardIconId = `${taskName.split(" ").join("-")}-forward`;
 
   fireEvent.change(createTaskInput, {
     target: { value: taskName },
   });
 
   fireEvent.click(createTaskButton);
-  await delay(20);
 
-  expect(backlogStage).toContainElement(queryByTestId(taskId));
-  expect(getByTestId(taskBackIconId).hasAttribute("disabled")).toBe(true);
-  expect(getByTestId(taskForwardIconId).hasAttribute("disabled")).toBeFalsy();
+  const { forwardButton, backButton } = await getTaskElements(taskName);
+
+  waitFor(() => {
+    expect(backlogStage).toContainElement(getTask(taskName));
+    expect(forwardButton.hasAttribute("disabled")).toBe(true);
+    expect(backButton.hasAttribute("disabled")).toBeFalsy();
+  });
 });
 
 test("For a task in stage 0, can be moved forward till stage 4 and check for icons are enabled/disabled correctly", async () => {
-  const { getByTestId, queryByTestId } = renderApp();
+  renderApp();
 
-  const createTaskInput = getByTestId(testIds.createTaskInput);
-  const createTaskButton = getByTestId(testIds.createTaskButton);
-  const backlogStage = getByTestId(testIds.stages[0]);
-  const toDoStage = getByTestId(testIds.stages[1]);
-  const onGoingStage = getByTestId(testIds.stages[2]);
-  const doneStage = getByTestId(testIds.stages[3]);
+  const { createTaskButton, createTaskInput } = await getFormElements();
+  const { backlogStage, toDoStage, doneStage, onGoingStage } =
+    await getStages();
 
   const taskName = "task 1";
-  const taskId = `${taskName.split(" ").join("-")}-name`;
-  const taskBackIconId = `${taskName.split(" ").join("-")}-back`;
-  const taskForwardIconId = `${taskName.split(" ").join("-")}-forward`;
-
-  expect(backlogStage).not.toContainElement(queryByTestId(taskId));
-  expect(toDoStage).not.toContainElement(queryByTestId(taskId));
-  expect(onGoingStage).not.toContainElement(queryByTestId(taskId));
-  expect(doneStage).not.toContainElement(queryByTestId(taskId));
+  const { forwardButton, backButton } = await getTaskElements(taskName);
 
   fireEvent.change(createTaskInput, {
     target: { value: taskName },
   });
 
   fireEvent.click(createTaskButton);
-  await delay(20);
+  waitFor(() => {
+    const task = getTask(taskName);
+    expect(backlogStage).toContainElement(task);
+    expect(toDoStage).not.toContainElement(task);
+    expect(onGoingStage).not.toContainElement(task);
+    expect(doneStage).not.toContainElement(task);
+  });
 
-  expect(backlogStage).toContainElement(queryByTestId(taskId));
-  expect(toDoStage).not.toContainElement(queryByTestId(taskId));
-  expect(onGoingStage).not.toContainElement(queryByTestId(taskId));
-  expect(doneStage).not.toContainElement(queryByTestId(taskId));
+  fireEvent.click(forwardButton);
+  waitFor(() => {
+    const task = getTask(taskName);
+    expect(backlogStage).not.toContainElement(task);
+    expect(toDoStage).toContainElement(task);
+    expect(onGoingStage).not.toContainElement(task);
+    expect(doneStage).not.toContainElement(task);
 
-  fireEvent.click(getByTestId(taskForwardIconId));
+    expect(backButton.hasAttribute("disabled")).toBeFalsy();
+    expect(forwardButton.hasAttribute("disabled")).toBeFalsy();
+  });
 
-  await delay(20);
+  fireEvent.click(forwardButton);
+  waitFor(() => {
+    const task = getTask(taskName);
+    expect(backlogStage).not.toContainElement(task);
+    expect(toDoStage).not.toContainElement(task);
+    expect(onGoingStage).toContainElement(task);
+    expect(doneStage).not.toContainElement(task);
 
-  expect(backlogStage).not.toContainElement(queryByTestId(taskId));
-  expect(toDoStage).toContainElement(queryByTestId(taskId));
-  expect(onGoingStage).not.toContainElement(queryByTestId(taskId));
-  expect(doneStage).not.toContainElement(queryByTestId(taskId));
-  expect(getByTestId(taskBackIconId).hasAttribute("disabled")).toBeFalsy();
-  expect(getByTestId(taskForwardIconId).hasAttribute("disabled")).toBeFalsy();
+    expect(backButton.hasAttribute("disabled")).toBeFalsy();
+    expect(forwardButton.hasAttribute("disabled")).toBeFalsy();
+  });
 
-  fireEvent.click(getByTestId(taskForwardIconId));
-  await delay(20);
+  fireEvent.click(forwardButton);
+  waitFor(() => {
+    const task = getTask(taskName);
+    expect(backlogStage).not.toContainElement(task);
+    expect(toDoStage).not.toContainElement(task);
+    expect(onGoingStage).not.toContainElement(task);
+    expect(doneStage).toContainElement(task);
 
-  expect(backlogStage).not.toContainElement(queryByTestId(taskId));
-  expect(toDoStage).not.toContainElement(queryByTestId(taskId));
-  expect(onGoingStage).toContainElement(queryByTestId(taskId));
-  expect(doneStage).not.toContainElement(queryByTestId(taskId));
-  expect(getByTestId(taskBackIconId).hasAttribute("disabled")).toBeFalsy();
-  expect(getByTestId(taskForwardIconId).hasAttribute("disabled")).toBeFalsy();
-
-  fireEvent.click(getByTestId(taskForwardIconId));
-  await delay(20);
-
-  expect(backlogStage).not.toContainElement(queryByTestId(taskId));
-  expect(toDoStage).not.toContainElement(queryByTestId(taskId));
-  expect(onGoingStage).not.toContainElement(queryByTestId(taskId));
-  expect(doneStage).toContainElement(queryByTestId(taskId));
-
-  expect(getByTestId(taskBackIconId).hasAttribute("disabled")).toBeFalsy();
-  expect(getByTestId(taskForwardIconId).hasAttribute("disabled")).toBe(true);
+    expect(backButton.hasAttribute("disabled")).toBeFalsy();
+    expect(forwardButton.hasAttribute("disabled")).toBe(true);
+  });
 });
 
 test("For a task in stage 4, can be moved backward till stage 0 and check for icons are enabled/disabled correctly", async () => {
-  const { getByTestId, queryByTestId } = renderApp();
+  renderApp();
 
-  const createTaskInput = getByTestId(testIds.createTaskInput);
-  const createTaskButton = getByTestId(testIds.createTaskButton);
-  const backlogStage = getByTestId(testIds.stages[0]);
-  const toDoStage = getByTestId(testIds.stages[1]);
-  const onGoingStage = getByTestId(testIds.stages[2]);
-  const doneStage = getByTestId(testIds.stages[3]);
+  const { createTaskButton, createTaskInput } = await getFormElements();
+  const { backlogStage, toDoStage, doneStage, onGoingStage } =
+    await getStages();
 
   const taskName = "task 1";
-  const taskId = `${taskName.split(" ").join("-")}-name`;
-  const taskBackIconId = `${taskName.split(" ").join("-")}-back`;
-  const taskForwardIconId = `${taskName.split(" ").join("-")}-forward`;
 
   fireEvent.change(createTaskInput, {
     target: { value: taskName },
   });
 
   fireEvent.click(createTaskButton);
-  await delay(20);
-  fireEvent.click(getByTestId(taskForwardIconId));
-  await delay(20);
-  fireEvent.click(getByTestId(taskForwardIconId));
-  await delay(20);
-  fireEvent.click(getByTestId(taskForwardIconId));
-  await delay(20);
 
-  fireEvent.click(getByTestId(taskBackIconId));
-  await delay(20);
-  expect(backlogStage).not.toContainElement(queryByTestId(taskId));
-  expect(toDoStage).not.toContainElement(queryByTestId(taskId));
-  expect(onGoingStage).toContainElement(queryByTestId(taskId));
-  expect(doneStage).not.toContainElement(queryByTestId(taskId));
-  expect(getByTestId(taskBackIconId).hasAttribute("disabled")).toBeFalsy();
-  expect(getByTestId(taskForwardIconId).hasAttribute("disabled")).toBeFalsy();
+  const { forwardButton, backButton } = await getTaskElements(taskName);
 
-  fireEvent.click(getByTestId(taskBackIconId));
-  await delay(20);
-  expect(backlogStage).not.toContainElement(queryByTestId(taskId));
-  expect(toDoStage).toContainElement(queryByTestId(taskId));
-  expect(onGoingStage).not.toContainElement(queryByTestId(taskId));
-  expect(doneStage).not.toContainElement(queryByTestId(taskId));
-  expect(getByTestId(taskBackIconId).hasAttribute("disabled")).toBeFalsy();
-  expect(getByTestId(taskForwardIconId).hasAttribute("disabled")).toBeFalsy();
+  fireEvent.click(forwardButton);
+  fireEvent.click(forwardButton);
+  fireEvent.click(forwardButton);
 
-  fireEvent.click(getByTestId(taskBackIconId));
-  await delay(20);
-  expect(backlogStage).toContainElement(queryByTestId(taskId));
-  expect(toDoStage).not.toContainElement(queryByTestId(taskId));
-  expect(onGoingStage).not.toContainElement(queryByTestId(taskId));
-  expect(doneStage).not.toContainElement(queryByTestId(taskId));
-  expect(getByTestId(taskBackIconId).hasAttribute("disabled")).toBe(true);
-  expect(getByTestId(taskForwardIconId).hasAttribute("disabled")).toBeFalsy();
+  fireEvent.click(backButton);
+  waitFor(() => {
+    const task = getTask(taskName);
+    expect(backlogStage).not.toContainElement(task);
+    expect(toDoStage).not.toContainElement(task);
+    expect(onGoingStage).toContainElement(task);
+    expect(doneStage).not.toContainElement(task);
+    expect(backButton.hasAttribute("disabled")).toBeFalsy();
+    expect(forwardButton.hasAttribute("disabled")).toBeFalsy();
+  });
+
+  fireEvent.click(backButton);
+  waitFor(() => {
+    const task = getTask(taskName);
+    expect(backlogStage).not.toContainElement(task);
+    expect(toDoStage).toContainElement(task);
+    expect(onGoingStage).not.toContainElement(task);
+    expect(doneStage).not.toContainElement(task);
+    expect(backButton.hasAttribute("disabled")).toBeFalsy();
+    expect(forwardButton.hasAttribute("disabled")).toBeFalsy();
+  });
+
+  fireEvent.click(backButton);
+  waitFor(() => {
+    const task = getTask(taskName);
+    expect(backlogStage).toContainElement(task);
+    expect(toDoStage).not.toContainElement(task);
+    expect(onGoingStage).not.toContainElement(task);
+    expect(doneStage).not.toContainElement(task);
+    expect(backButton.hasAttribute("disabled")).toBe(true);
+    expect(forwardButton.hasAttribute("disabled")).toBeFalsy();
+  });
 });
 
 test("Clicking on delete should delete the task in stage 0", async () => {
-  const { getByTestId, queryByTestId } = renderApp();
+  renderApp();
 
-  const createTaskInput = getByTestId(testIds.createTaskInput);
-  const createTaskButton = getByTestId(testIds.createTaskButton);
-  const backlogStage = getByTestId(testIds.stages[0]);
+  const { createTaskButton, createTaskInput } = await getFormElements();
+  const { backlogStage } = await getStages();
 
   const taskName = "task 1";
-  const taskId = `${taskName.split(" ").join("-")}-name`;
-  const taskDeleteIconId = `${taskName.split(" ").join("-")}-delete`;
 
   fireEvent.change(createTaskInput, {
     target: { value: taskName },
   });
 
   fireEvent.click(createTaskButton);
-  await delay(20);
 
-  expect(backlogStage).toContainElement(queryByTestId(taskId));
-  expect(getByTestId(taskDeleteIconId).hasAttribute("disabled")).toBe(false);
-  fireEvent.click(getByTestId(taskDeleteIconId));
-  await delay(20);
-  expect(backlogStage).not.toContainElement(queryByTestId(taskId));
+  const { deleteButton } = await getTaskElements(taskName);
+
+  waitFor(() => {
+    const task = getTask(taskName);
+    expect(backlogStage).toContainElement(task);
+    expect(deleteButton.hasAttribute("disabled")).toBe(false);
+  });
+
+  fireEvent.click(deleteButton);
+  waitFor(() => {
+    const task = getTask(taskName);
+    expect(backlogStage).not.toContainElement(task);
+  });
 });
 
 test("Clicking on delete should delete the task in stage 1", async () => {
-  const { getByTestId, queryByTestId } = renderApp();
+  renderApp();
 
-  const createTaskInput = getByTestId(testIds.createTaskInput);
-  const createTaskButton = getByTestId(testIds.createTaskButton);
-  const toDoStage = getByTestId(testIds.stages[1]);
+  const { createTaskButton, createTaskInput } = await getFormElements();
+  const { toDoStage } = await getStages();
 
   const taskName = "task 1";
-  const taskId = `${taskName.split(" ").join("-")}-name`;
-  const taskDeleteIconId = `${taskName.split(" ").join("-")}-delete`;
-  const taskForwardIconId = `${taskName.split(" ").join("-")}-forward`;
 
   fireEvent.change(createTaskInput, {
     target: { value: taskName },
   });
 
   fireEvent.click(createTaskButton);
-  await delay(20);
-  fireEvent.click(getByTestId(taskForwardIconId));
-  await delay(20);
 
-  expect(toDoStage).toContainElement(queryByTestId(taskId));
-  expect(getByTestId(taskDeleteIconId).hasAttribute("disabled")).toBe(false);
-  fireEvent.click(getByTestId(taskDeleteIconId));
-  await delay(20);
-  expect(toDoStage).not.toContainElement(queryByTestId(taskId));
+  const { forwardButton, deleteButton } = await getTaskElements(taskName);
+
+  fireEvent.click(forwardButton);
+  waitFor(() => {
+    const task = getTask(taskName);
+    expect(toDoStage).toContainElement(task);
+    expect(deleteButton.hasAttribute("disabled")).toBe(false);
+  });
+
+  fireEvent.click(deleteButton);
+  waitFor(() => {
+    const task = getTask(taskName);
+    expect(toDoStage).not.toContainElement(task);
+  });
 });
 
 test("Clicking on delete should delete the task in stage 2", async () => {
-  const { getByTestId, queryByTestId } = renderApp();
+  renderApp();
 
-  const createTaskInput = getByTestId(testIds.createTaskInput);
-  const createTaskButton = getByTestId(testIds.createTaskButton);
-  const activeStage = getByTestId(testIds.stages[2]);
+  const { createTaskButton, createTaskInput } = await getFormElements();
+  const { onGoingStage } = await getStages();
 
   const taskName = "task 1";
-  const taskId = `${taskName.split(" ").join("-")}-name`;
-  const taskDeleteIconId = `${taskName.split(" ").join("-")}-delete`;
-  const taskForwardIconId = `${taskName.split(" ").join("-")}-forward`;
 
   fireEvent.change(createTaskInput, {
     target: { value: taskName },
   });
 
   fireEvent.click(createTaskButton);
-  await delay(20);
-  fireEvent.click(getByTestId(taskForwardIconId));
-  await delay(20);
-  fireEvent.click(getByTestId(taskForwardIconId));
-  await delay(20);
 
-  expect(activeStage).toContainElement(queryByTestId(taskId));
-  expect(getByTestId(taskDeleteIconId).hasAttribute("disabled")).toBe(false);
-  fireEvent.click(getByTestId(taskDeleteIconId));
-  await delay(20);
-  expect(activeStage).not.toContainElement(queryByTestId(taskId));
+  const { forwardButton, deleteButton } = await getTaskElements(taskName);
+
+  fireEvent.click(forwardButton);
+  fireEvent.click(forwardButton);
+
+  waitFor(() => {
+    const task = getTask(taskName);
+    expect(onGoingStage).toContainElement(task);
+    expect(deleteButton.hasAttribute("disabled")).toBe(false);
+  });
+
+  fireEvent.click(deleteButton);
+  waitFor(() => {
+    const task = getTask(taskName);
+    expect(onGoingStage).not.toContainElement(task);
+  });
 });
 
 test("Clicking on delete should delete the task in stage 3", async () => {
-  const { getByTestId, queryByTestId } = renderApp();
+  renderApp();
 
-  const createTaskInput = getByTestId(testIds.createTaskInput);
-  const createTaskButton = getByTestId(testIds.createTaskButton);
-  const doneStage = getByTestId(testIds.stages[3]);
+  const { createTaskButton, createTaskInput } = await getFormElements();
 
   const taskName = "task 1";
-  const taskId = `${taskName.split(" ").join("-")}-name`;
-  const taskDeleteIconId = `${taskName.split(" ").join("-")}-delete`;
-  const taskForwardIconId = `${taskName.split(" ").join("-")}-forward`;
 
   fireEvent.change(createTaskInput, {
     target: { value: taskName },
   });
 
   fireEvent.click(createTaskButton);
-  await delay(20);
-  fireEvent.click(getByTestId(taskForwardIconId));
-  await delay(20);
-  fireEvent.click(getByTestId(taskForwardIconId));
-  await delay(20);
-  fireEvent.click(getByTestId(taskForwardIconId));
-  await delay(20);
 
-  expect(doneStage).toContainElement(queryByTestId(taskId));
-  expect(getByTestId(taskDeleteIconId).hasAttribute("disabled")).toBe(false);
-  fireEvent.click(getByTestId(taskDeleteIconId));
-  await delay(20);
-  expect(doneStage).not.toContainElement(queryByTestId(taskId));
+  const { forwardButton, deleteButton } = await getTaskElements(taskName);
+  fireEvent.click(forwardButton);
+  fireEvent.click(forwardButton);
+  fireEvent.click(forwardButton);
+
+  const { doneStage } = await getStages();
+
+  waitFor(() => {
+    const task = getTask(taskName);
+    expect(doneStage).toContainElement(task);
+    expect(deleteButton.hasAttribute("disabled")).toBe(false);
+  });
+
+  fireEvent.click(deleteButton);
+  waitFor(() => {
+    const task = getTask(taskName);
+    expect(doneStage).not.toContainElement(task);
+  });
 });

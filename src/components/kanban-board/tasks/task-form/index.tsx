@@ -5,6 +5,7 @@ import TaskRepository from "@/repositories/task-repository";
 import useNotifications from "@hooks/useNotifications";
 import useForm from "@/hooks/useForm";
 import classNames from "classnames";
+import { TASK_STAGE } from "@/enums/task";
 
 const repository = new TaskRepository();
 
@@ -21,7 +22,6 @@ export default function TaskForm() {
     onSuccess: (_) => {
       notification.success("Task added");
       clearForm(formRef.current!);
-      queryClient.getQueryData([repository.resource]);
       queryClient.refetchQueries({
         queryKey: [repository.resource, "getMany"],
       });
@@ -45,7 +45,7 @@ export default function TaskForm() {
 
     mutate({
       name: taskName,
-      stage: 0,
+      stage: TASK_STAGE.BACKLOG,
     });
   };
 

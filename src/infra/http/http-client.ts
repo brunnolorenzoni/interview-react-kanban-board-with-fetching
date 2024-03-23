@@ -15,10 +15,17 @@ export abstract class HttpClient {
   }
 
   private initializeResponseInterceptor = () => {
-    this.instance?.interceptors.response.use(this.handleResponse, this.handleError);
+    this.instance?.interceptors.response.use(
+      this.handleResponse,
+      this.handleError,
+    );
   };
 
   private handleResponse = ({ data }: AxiosResponse) => data;
 
-  private handleError = (error: any) => Promise.reject(error);
+  private handleError = (error: any) =>
+    Promise.reject({
+      ...error,
+      message: error.response.data,
+    });
 }

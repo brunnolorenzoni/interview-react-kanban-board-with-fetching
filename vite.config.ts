@@ -17,6 +17,7 @@ export default defineConfig({
       "@infra": "/src/infra/",
       "@constants": "/src/constants/",
       "@enums": "/src/enums/",
+      "@hooks": "/src/hooks/",
     },
   },
 });

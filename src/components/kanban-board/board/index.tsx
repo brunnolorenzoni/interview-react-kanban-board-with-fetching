@@ -12,7 +12,7 @@ export default function Board() {
     data: tasks,
     isError,
   } = useQuery({
-    queryKey: [repository.resource],
+    queryKey: [repository.resource, "getMany"],
     queryFn: () => repository.getMany(),
   });
 

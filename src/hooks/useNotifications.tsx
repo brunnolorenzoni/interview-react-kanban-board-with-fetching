@@ -1,40 +1,46 @@
-import { toast, ToastOptions } from 'react-toastify';
+import { toast, ToastOptions } from "react-toastify";
 
-export default function useNotifications(toastId: string) {
+type ToastId = string | undefined;
+
+export default function useNotifications(toastId: ToastId) {
   const handleToast = (message: string, options: ToastOptions): void => {
     toast(message, {
-      toastId,
+      toastId: toastId,
       ...options,
     });
   };
 
   const success = (message: string, options: ToastOptions = {}) => {
     handleToast(message, {
-      type: 'success',
+      type: "success",
       ...options,
     });
   };
 
   const error = (message: string, options: ToastOptions = {}) => {
     handleToast(message, {
-      type: 'error',
+      type: "error",
       ...options,
     });
   };
 
   const warn = (message: string, options: ToastOptions = {}) => {
     handleToast(message, {
-      type: 'warning',
+      type: "warning",
       ...options,
     });
   };
 
   const info = (message: string, options: ToastOptions = {}) => {
     handleToast(message, {
-      type: 'info',
+      type: "info",
       ...options,
     });
   };
 
-  return { toast, success, error, warn, info };
+  const close = (toastId: ToastId) => {
+    toast.dismiss(toastId);
+  };
+
+  return { toast, success, error, warn, info, close };
 }

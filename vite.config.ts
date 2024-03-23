@@ -15,6 +15,8 @@ export default defineConfig({
       "@repositories": "/src/repositories/",
       "@models": "/src/models/",
       "@infra": "/src/infra/",
+      "@constants": "/src/constants/",
+      "@enums": "/src/enums/",
     },
   },
 });

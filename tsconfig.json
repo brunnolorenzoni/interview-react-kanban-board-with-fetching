@@ -5,7 +5,9 @@
       "@components/*": ["./src/components/*"],
       "@repositories/*": ["./src/repositories/*"],
       "@models/*": ["./src/models/*"],
-      "@infra/*": ["./src/infra/*"]
+      "@infra/*": ["./src/infra/*"],
+      "@constants/*": ["./src/constants/*"],
+      "@enums/*": ["./src/enums/*"]
     },
     "target": "ES2020",
     "useDefineForClassFields": true,

@@ -1,8 +1,11 @@
-import { HttpClient } from "../infra/http/http-client";
-import { IBaseRepository } from "./types";
+import { HttpClient } from "@infra/http/http-client";
+import { IBaseRepository } from "@repositories/types";
 
-export abstract class BaseRepository<T> extends HttpClient implements IBaseRepository<T> {
-  protected resource: string = '';
+export abstract class BaseRepository<T>
+  extends HttpClient
+  implements IBaseRepository<T>
+{
+  protected resource: string = "";
 
   public async get(id: string): Promise<T> {
     const instance = this.createInstance();

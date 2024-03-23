@@ -8,4 +8,13 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/vitest-setup.ts"],
   },
+  resolve: {
+    alias: {
+      "@": "/src",
+      "@components": "/src/components/",
+      "@repositories": "/src/repositories/",
+      "@models": "/src/models/",
+      "@infra": "/src/infra/",
+    },
+  },
 });

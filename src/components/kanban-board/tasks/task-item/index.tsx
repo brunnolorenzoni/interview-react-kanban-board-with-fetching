@@ -41,7 +41,7 @@ export default function TaskItem({ task }: Props) {
   });
 
   const isStageValid = (stage: number) => {
-    return stage >= 0 && stage <= STAGE_NAMES.length;
+    return stage >= 0 && stage <= STAGE_NAMES.length - 1;
   };
 
   const handleMove = (movement: number) => {
@@ -64,7 +64,7 @@ export default function TaskItem({ task }: Props) {
           className="icon-only x-small mx-2"
           data-testid={`${task.name.split(" ").join("-")}-back`}
           onClick={() => handleMove(-1)}
-          disabled={isDisabled}
+          disabled={isDisabled || task.stage === 0}
         >
           <i className="material-icons">arrow_back</i>
         </button>
@@ -72,7 +72,7 @@ export default function TaskItem({ task }: Props) {
           className="icon-only x-small mx-2"
           data-testid={`${task.name.split(" ").join("-")}-forward`}
           onClick={() => handleMove(1)}
-          disabled={isDisabled}
+          disabled={isDisabled || task.stage >= STAGE_NAMES.length - 1}
         >
           <i className="material-icons">arrow_forward</i>
         </button>
